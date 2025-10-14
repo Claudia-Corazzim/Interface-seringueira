@@ -51,14 +51,20 @@ export default function HeveaAnalysisInterface() {
   const [chartType, setChartType] = useState<'scatter' | 'bar' | 'pie' | 'line'>('scatter');
 
   const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('handleFileUpload chamado', event);
     const file = event.target.files?.[0];
-    if (!file) return;
+    console.log('Arquivo selecionado:', file);
+    if (!file) {
+      console.log('Nenhum arquivo selecionado');
+      return;
+    }
 
     setLoading(true);
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
+        console.log('Parse completo:', results);
         const parsedData = results.data as SNPData[];
         setData(parsedData);
         setLoading(false);
@@ -246,12 +252,24 @@ export default function HeveaAnalysisInterface() {
                 type="file"
                 accept=".csv"
                 onChange={handleFileUpload}
-                className="hidden"
+                style={{ display: 'none' }}
                 id="file-upload"
               />
               <label
                 htmlFor="file-upload"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-rubber-green-600 text-white rounded-lg hover:bg-rubber-green-700 cursor-pointer transition-colors"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.75rem 1.5rem',
+                  backgroundColor: '#16a34a',
+                  color: 'white',
+                  borderRadius: '0.5rem',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#15803d'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#16a34a'}
               >
                 <Upload className="h-4 w-4" />
                 Selecionar Arquivo CSV
@@ -273,7 +291,29 @@ export default function HeveaAnalysisInterface() {
                 <button
                   onClick={performPCA}
                   disabled={data.length === 0 || loading}
-                  className="flex items-center gap-2 px-4 py-2 bg-rubber-green-600 text-white rounded-lg hover:bg-rubber-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.5rem 1rem',
+                    backgroundColor: data.length === 0 || loading ? '#9ca3af' : '#16a34a',
+                    color: 'white',
+                    borderRadius: '0.5rem',
+                    border: 'none',
+                    cursor: data.length === 0 || loading ? 'not-allowed' : 'pointer',
+                    opacity: data.length === 0 || loading ? 0.5 : 1,
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (data.length > 0 && !loading) {
+                      e.currentTarget.style.backgroundColor = '#15803d';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (data.length > 0 && !loading) {
+                      e.currentTarget.style.backgroundColor = '#16a34a';
+                    }
+                  }}
                 >
                   <TrendingUp className="h-4 w-4" />
                   {loading ? 'Processando...' : 'Executar PCA'}
@@ -319,7 +359,7 @@ export default function HeveaAnalysisInterface() {
                   {/* PCA Visualization */}
                   <div className="bg-white p-4 rounded-lg border">
                     <h4 className="font-medium mb-4">📊 Gráfico de Variância dos Componentes Principais</h4>
-                    <div className="h-64">
+                    <div className="h-56">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={getVarianceData()}>
                           <CartesianGrid strokeDasharray="3 3" />
@@ -361,7 +401,29 @@ export default function HeveaAnalysisInterface() {
                   <button
                     onClick={performClustering}
                     disabled={!pcaResult || loading}
-                    className="flex items-center gap-2 px-4 py-2 bg-rubber-green-600 text-white rounded-lg hover:bg-rubber-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      padding: '0.5rem 1rem',
+                      backgroundColor: !pcaResult || loading ? '#9ca3af' : '#16a34a',
+                      color: 'white',
+                      borderRadius: '0.5rem',
+                      border: 'none',
+                      cursor: !pcaResult || loading ? 'not-allowed' : 'pointer',
+                      opacity: !pcaResult || loading ? 0.5 : 1,
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (pcaResult && !loading) {
+                        e.currentTarget.style.backgroundColor = '#15803d';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (pcaResult && !loading) {
+                        e.currentTarget.style.backgroundColor = '#16a34a';
+                      }
+                    }}
                   >
                     <BarChart3 className="h-4 w-4" />
                     {loading ? 'Processando...' : 'Executar Clustering'}
@@ -385,43 +447,84 @@ export default function HeveaAnalysisInterface() {
                 <button
                   onClick={exportResults}
                   disabled={!pcaResult || !clusterResult}
-                  className="flex items-center gap-2 px-4 py-2 bg-rubber-green-600 text-white rounded-lg hover:bg-rubber-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.5rem 1rem',
+                    backgroundColor: !pcaResult || !clusterResult ? '#9ca3af' : '#16a34a',
+                    color: 'white',
+                    borderRadius: '0.5rem',
+                    border: 'none',
+                    cursor: !pcaResult || !clusterResult ? 'not-allowed' : 'pointer',
+                    opacity: !pcaResult || !clusterResult ? 0.5 : 1,
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (pcaResult && clusterResult) {
+                      e.currentTarget.style.backgroundColor = '#15803d';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (pcaResult && clusterResult) {
+                      e.currentTarget.style.backgroundColor = '#16a34a';
+                    }
+                  }}
                 >
                   <Download className="h-4 w-4" />
                   Exportar Resultados
                 </button>
               </div>
 
+              {/* Chart Type Selector */}
+              {pcaResult && clusterResult && (
+                <div className="flex flex-wrap gap-2 items-center">
+                  <span className="text-sm font-medium text-gray-700">Tipo de Visualização:</span>
+                  {[
+                    { id: 'scatter', label: 'Dispersão PCA', icon: '📊' },
+                    { id: 'bar', label: 'Variância PC', icon: '📈' },
+                    { id: 'pie', label: 'Distribuição Clusters', icon: '🥧' },
+                    { id: 'line', label: 'Variância Acumulada', icon: '📉' }
+                  ].map(chart => (
+                    <button
+                      key={chart.id}
+                      onClick={() => setChartType(chart.id as any)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.5rem 0.75rem',
+                        backgroundColor: chartType === chart.id ? '#dcfce7' : '#f3f4f6',
+                        color: chartType === chart.id ? '#15803d' : '#4b5563',
+                        border: chartType === chart.id ? '1px solid #86efac' : '1px solid transparent',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.875rem',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (chartType !== chart.id) {
+                          e.currentTarget.style.backgroundColor = '#e5e7eb';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (chartType !== chart.id) {
+                          e.currentTarget.style.backgroundColor = '#f3f4f6';
+                        }
+                      }}
+                    >
+                      <span>{chart.icon}</span>
+                      {chart.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {pcaResult && clusterResult && (
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                   {/* Visualization */}
                   <div className="xl:col-span-2 space-y-6">
-                    {/* Chart Type Selector */}
-                    <div className="bg-white p-4 rounded-lg border" style={{ minHeight: '500px' }}>
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        <h4 className="font-medium text-gray-900 mr-4">Tipo de Visualização:</h4>
-                        {[
-                          { id: 'scatter', label: 'Dispersão PCA', icon: '📊' },
-                          { id: 'bar', label: 'Variância PC', icon: '📈' },
-                          { id: 'pie', label: 'Distribuição Clusters', icon: '🥧' },
-                          { id: 'line', label: 'Variância Acumulada', icon: '📉' }
-                        ].map(chart => (
-                          <button
-                            key={chart.id}
-                            onClick={() => setChartType(chart.id as any)}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                              chartType === chart.id
-                                ? 'bg-rubber-green-100 text-rubber-green-700 border border-rubber-green-300'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                            }`}
-                          >
-                            <span>{chart.icon}</span>
-                            {chart.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
                     {/* Charts */}
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <h5 className="font-medium text-gray-700 mb-3">
@@ -430,7 +533,7 @@ export default function HeveaAnalysisInterface() {
                         {chartType === 'pie' && '🥧 Distribuição dos Clusters'}
                         {chartType === 'line' && '📉 Variância Acumulada'}
                       </h5>
-                      <div className="w-full h-[500px] border border-gray-200 rounded bg-white relative overflow-hidden">
+                      <div className="w-full h-[400px] border border-gray-200 rounded bg-white relative overflow-hidden">
                         {/* TESTE: Sempre mostrar algo visível */}
                         <div className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 text-xs rounded z-20">
                           TESTE: Container visível - Chart: {chartType}
@@ -576,10 +679,6 @@ export default function HeveaAnalysisInterface() {
                             chartType === 'pie' ? getClusterDistributionData().length : 0
                           }
                         </div>
-
-
-                        
-
                       </div>
                     </div>
                   </div>

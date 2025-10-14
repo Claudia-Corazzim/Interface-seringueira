@@ -11,146 +11,128 @@ Currently, two official plugins are available:
 
 The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-# Interface para Análise Genômica da Seringueira 🌿
+# Interface de Análise Genômica da Seringueira �
 
-Uma aplicação web moderna para análise de dados genômicos de *Hevea brasiliensis* (seringueira), desenvolvida com React, TypeScript e Vite.
+Interface web para análise de dados genômicos de *Hevea brasiliensis* (seringueira), desenvolvida com tecnologias modernas para facilitar a análise de SNPs e estrutura populacional.
 
 ## 🚀 Funcionalidades
 
-- **Upload de Dados SNP**: Interface para carregar arquivos CSV com dados de SNPs
-- **Análise PCA**: Análise de Componentes Principais para redução dimensional
-- **Clustering K-means**: Agrupamento de amostras baseado nos componentes principais
-- **Visualização Interativa**: Gráficos de dispersão com clusters coloridos
-- **Exportação de Resultados**: Download dos resultados em formato CSV
+- **Análise de Dados**
+  - Upload de arquivos CSV com dados de SNPs
+  - Análise de Componentes Principais (PCA)
+  - Clustering K-means automático
+  - Visualização interativa de resultados
 
-## 🛠️ Tecnologias Utilizadas
+- **Visualizações**
+  - 📊 Gráfico de Dispersão PCA
+  - 📈 Gráfico de Variância dos PCs
+  - 🥧 Distribuição dos Clusters
+  - 📉 Variância Acumulada
 
-- **React 18** com TypeScript
-- **Vite** para build e desenvolvimento
-- **Tailwind CSS** para estilização
-- **Recharts** para visualizações
-- **D3.js** para manipulação de dados
-- **ML-Matrix** e **ML-PCA** para análises estatísticas
-- **PapaParse** para processamento de CSV
-- **Lucide React** para ícones
+- **Recursos**
+  - Estatísticas detalhadas por cluster
+  - Exportação de resultados em CSV
+  - Interface responsiva e intuitiva
+  - Processamento local dos dados
 
-## 📋 Pré-requisitos
+## 🛠️ Tecnologias
 
-- Node.js (versão 16 ou superior)
-- npm ou yarn
+- **Core:**
+  - React 18
+  - TypeScript
+  - Vite
 
-## 🏃‍♂️ Como Executar
+- **Estilização:**
+  - Tailwind CSS
+  - Lucide Icons
 
-1. **Instalar dependências:**
-```bash
-npm install
-```
+- **Análise de Dados:**
+  - ml-pca
+  - ml-kmeans
+  - PapaParse
 
-2. **Executar em modo desenvolvimento:**
-```bash
-npm run dev
-```
+- **Visualização:**
+  - Recharts
+  - D3.js
 
-3. **Abrir no navegador:**
-   - Acesse `http://localhost:5173`
+## � Instalação
 
-## 📊 Dados de Exemplo
+1. Clone o repositório:
+   ```bash
+   git clone https://github.com/Claudia-Corazzim/Interface-seringueira.git
+   ```
 
-O projeto inclui um arquivo de exemplo em `public/sample-data/hevea_snp_sample.csv` com dados simulados de SNPs de diferentes clones de seringueira:
+2. Instale as dependências:
+   ```bash
+   cd Interface-seringueira
+   npm install
+   ```
 
-- **RRIM 600**: Clone resistente a doenças
-- **GT1**: Clone de alto rendimento
-- **PB235**: Clone comercial popular
-- **IAN 873**: Clone amazônico
-- **PR107**: Clone brasileiro
-- **AVROS 2037**: Clone de origem asiática
+3. Inicie o servidor de desenvolvimento:
+   ```bash
+   npm run dev
+   ```
 
-## 🧬 Como Usar a Interface
+4. Acesse a aplicação em `http://localhost:5173`
 
-### 1. Upload de Dados
-- Clique na aba "Upload de Dados"
-- Selecione um arquivo CSV com dados de SNPs
-- O arquivo deve ter uma coluna 'id' e colunas numéricas para os SNPs
+## 💻 Como Usar
 
-### 2. Análise PCA
-- Após o upload, vá para a aba "Análise PCA"
-- Clique em "Executar PCA" para calcular os componentes principais
-- Visualize a variância explicada por cada componente
+1. **Upload de Dados**
+   - Faça upload do arquivo CSV com dados de SNPs
+   - Formato: uma linha por amostra, colunas para cada SNP
 
-### 3. Clustering
-- Na aba "Clustering", defina o número de clusters desejado
-- Execute o algoritmo K-means baseado nos componentes PC1 e PC2
-- Ajuste o número de clusters conforme necessário
+2. **Análise PCA**
+   - Execute a análise de componentes principais
+   - Visualize a variância explicada por cada componente
 
-### 4. Resultados
-- Visualize o gráfico de dispersão com os clusters identificados
-- Veja estatísticas detalhadas de cada cluster
-- Exporte os resultados completos em CSV
+3. **Clustering**
+   - Defina o número de clusters desejado
+   - Execute o algoritmo K-means
+   - Analise a distribuição das amostras
 
-## 📁 Estrutura do Projeto
+4. **Visualização**
+   - Explore diferentes visualizações dos resultados
+   - Exporte os dados processados
 
-```
-src/
-├── HeveaAnalysisInterface.tsx  # Componente principal da interface
-├── App.tsx                     # Componente raiz da aplicação
-├── main.tsx                    # Ponto de entrada da aplicação
-├── index.css                   # Estilos globais com Tailwind
-└── assets/                     # Recursos estáticos
+## � Dados de Exemplo
 
-public/
-└── sample-data/
-    └── hevea_snp_sample.csv   # Dados de exemplo
-```
+Incluímos um conjunto de dados de exemplo com:
+- 6 clones de seringueira
+  - RRIM 600
+  - GT1
+  - PB235
+  - IAN 873
+  - PR107
+  - AVROS 2037
+- 15 marcadores SNP por clone
+- 5 amostras por clone
+- Total: 30 amostras
 
-## 🔬 Metodologia Científica
+## 🔜 Próximos Passos
 
-### Análise PCA
-- Reduz a dimensionalidade dos dados de SNPs
-- Identifica os componentes que explicam maior variância
-- Facilita a visualização de padrões genéticos
-
-### Clustering K-means
-- Agrupa amostras com perfis genéticos similares
-- Utiliza os primeiros componentes principais
-- Ajuda a identificar estrutura populacional
-
-## 🧪 Formato dos Dados
-
-O arquivo CSV deve seguir este formato:
-
-```csv
-id,SNP_1,SNP_2,SNP_3,...
-AMOSTRA_001,1,0,1,...
-AMOSTRA_002,0,1,0,...
-```
-
-- **id**: Identificador único da amostra
-- **SNP_X**: Valores binários (0/1) ou alélicos para cada marcador SNP
-
-## 🤝 Contribuindo
-
-1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
+- [ ] Análise de componentes adicionais (PC3, PC4)
+- [ ] Implementação de novos algoritmos de clustering
+- [ ] Análise de diversidade genética
+- [ ] Sistema de filtros avançados
+- [ ] Exportação de gráficos em alta resolução
+- [ ] Integração com dados fenotípicos
 
 ## 📝 Licença
 
-Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
 
-## 👨‍🔬 Sobre a Seringueira
+## ✨ Contribuições
 
-*Hevea brasiliensis* é uma espécie amazônica de grande importância econômica como fonte natural de látex. A análise genômica dessa espécie contribui para:
+Contribuições são bem-vindas! Sinta-se à vontade para:
+1. Fazer um fork do projeto
+2. Criar uma branch para sua feature
+3. Commitar suas mudanças
+4. Fazer push para a branch
+5. Abrir um Pull Request
 
-- Programas de melhoramento genético
-- Conservação da diversidade genética
-- Identificação de marcadores para características importantes
-- Desenvolvimento de clones superiores
+## 📧 Contato
 
----
-
-Desenvolvido com ❤️ para a comunidade científica brasileira
+Cláudia Corazzim - [GitHub](https://github.com/Claudia-Corazzim)
 
 You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
