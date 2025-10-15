@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { Upload, BarChart3, TrendingUp, Download, Info } from 'lucide-react';
+import { Upload, BarChart3, TrendingUp, Download, Info, Brain } from 'lucide-react';
 import Papa from 'papaparse';
 import { PCA } from 'ml-pca';
 import { kmeans } from 'ml-kmeans';
+import SupervisedML from './components/SupervisedML';
 import { 
   ScatterChart, 
   Scatter as RechartsScatter, 
@@ -47,7 +48,7 @@ export default function HeveaAnalysisInterface() {
   const [clusterResult, setClusterResult] = useState<ClusterResult | null>(null);
   const [numClusters, setNumClusters] = useState(3);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'upload' | 'pca' | 'clusters' | 'results'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'pca' | 'clusters' | 'results' | 'ml'>('upload');
   const [chartType, setChartType] = useState<'scatter' | 'bar' | 'pie' | 'line'>('scatter');
 
   const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -219,6 +220,7 @@ export default function HeveaAnalysisInterface() {
             { id: 'upload', label: 'Upload de Dados', icon: Upload },
             { id: 'pca', label: 'Análise PCA', icon: TrendingUp },
             { id: 'clusters', label: 'Clustering', icon: BarChart3 },
+            { id: 'ml', label: 'ML Supervisionado', icon: Brain },
             { id: 'results', label: 'Resultados', icon: Download }
           ].map(tab => {
             const Icon = tab.icon;
@@ -437,6 +439,12 @@ export default function HeveaAnalysisInterface() {
                   Execute primeiro a análise PCA para continuar com o clustering
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === 'ml' && (
+            <div className="space-y-6">
+              <SupervisedML data={data} pcaResult={pcaResult} />
             </div>
           )}
 
