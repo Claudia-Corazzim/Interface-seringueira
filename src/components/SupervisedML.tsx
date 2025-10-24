@@ -20,12 +20,16 @@ export default function SupervisedML({ data, pcaResult }: SupervisedMLProps) {
   const [useJavaScript, setUseJavaScript] = useState(true); // Toggle JS/Python
 
   const models = [
-    { id: 'svm', name: 'SVM (Support Vector Machine)', icon: '🎯' },
-    { id: 'rf', name: 'Random Forest', icon: '🌳' },
-    { id: 'xgboost', name: 'XGBoost', icon: '🚀' },
-    { id: 'knn', name: 'K-Nearest Neighbors', icon: '📍' },
-    { id: 'mlp', name: 'MLP Neural Network', icon: '🧠' },
-    { id: 'ada', name: 'AdaBoost', icon: '⚡' }
+    { id: 'svm', name: 'SVM (Support Vector Machine)', icon: '🎯', description: 'Classificação por hiperplano ótimo' },
+    { id: 'rf', name: 'Random Forest', icon: '🌳', description: 'Ensemble de árvores de decisão' },
+    { id: 'xgboost', name: 'XGBoost', icon: '🚀', description: 'Gradient boosting otimizado' },
+    { id: 'knn', name: 'K-Nearest Neighbors', icon: '📍', description: 'Classificação por vizinhos próximos' },
+    { id: 'mlp', name: 'MLP Neural Network', icon: '🧠', description: 'Rede neural multicamadas' },
+    { id: 'ada', name: 'AdaBoost', icon: '⚡', description: 'Boosting adaptativo' },
+    { id: 'dt', name: 'Decision Tree', icon: '🌲', description: 'Árvore de decisão com poda' },
+    { id: 'lr', name: 'Logistic Regression', icon: '📈', description: 'Regressão logística' },
+    { id: 'nb', name: 'Naive Bayes', icon: '🎲', description: 'Classificador probabilístico' },
+    { id: 'gb', name: 'Gradient Boosting', icon: '🔥', description: 'Gradient boosting clássico' }
   ];
 
   const trainModelsHandler = async () => {
@@ -53,20 +57,39 @@ export default function SupervisedML({ data, pcaResult }: SupervisedMLProps) {
         const pcaScores = pcaResult.projectedData || pcaResult.scores || [];
         const features = pcaScores.map((row: number[]) => row.slice(0, 3)); // Usa PC1, PC2, PC3
         console.log('Features:', features.length, 'amostras');
+        
+        // Extrai labels dos clones de forma mais robusta
         const labels = data.map((d: any) => {
-          // Extrai o grupo do clone (ex: "RRIM 600 - Rep 1" -> 0)
-          const cloneName = d.Clone || d.Sample || '';
-          const cloneGroups: { [key: string]: number } = {
-            'RRIM': 0, 'GT1': 1, 'PB235': 2, 'IAN': 3, 'PR107': 4, 'AVROS': 5
-          };
+          const cloneName = String(d.Clone || d.Clones || d.Sample || '').toUpperCase();
           
-          for (const [key, value] of Object.entries(cloneGroups)) {
-            if (cloneName.includes(key)) return value;
-          }
-          return 0;
+          // Grupos de clones de seringueira
+          if (cloneName.includes('RRIM')) return 0;
+          if (cloneName.includes('GT') || cloneName.includes('GT1')) return 1;
+          if (cloneName.includes('PB') || cloneName.includes('PB235')) return 2;
+          if (cloneName.includes('IAN')) return 3;
+          if (cloneName.includes('PR') || cloneName.includes('PR107')) return 4;
+          if (cloneName.includes('AVROS')) return 5;
+          
+          // Default: usar hash simples do nome se não identificar
+          return Math.abs(cloneName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % 6;
         });
 
         console.log('Labels:', labels);
+        console.log('Classes únicas:', [...new Set(labels)].sort());
+        console.log('Distribuição:', labels.reduce((acc: any, l) => {
+          acc[l] = (acc[l] || 0) + 1;
+          return acc;
+        }, {}));
+        
+        // Verificar se há pelo menos 2 classes
+        const uniqueLabels = [...new Set(labels)];
+        if (uniqueLabels.length < 2) {
+          alert(`Erro: Apenas ${uniqueLabels.length} classe detectada. São necessárias pelo menos 2 classes para classificação!`);
+          setIsTraining(false);
+          return;
+        }
+        
+        console.log(`✓ ${uniqueLabels.length} classes detectadas`);
         console.log('Iniciando treinamento...');
 
         const mlResults = await trainModels(
@@ -152,7 +175,7 @@ export default function SupervisedML({ data, pcaResult }: SupervisedMLProps) {
               {models.map(model => (
                 <label 
                   key={model.id} 
-                  className="flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                  className="flex items-start gap-3 p-3 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
                   style={{
                     borderColor: selectedModels.includes(model.id) ? '#3b82f6' : '#e5e7eb',
                     backgroundColor: selectedModels.includes(model.id) ? '#eff6ff' : 'white'
@@ -162,10 +185,13 @@ export default function SupervisedML({ data, pcaResult }: SupervisedMLProps) {
                     type="checkbox"
                     checked={selectedModels.includes(model.id)}
                     onChange={() => toggleModel(model.id)}
-                    className="w-4 h-4 text-blue-600"
+                    className="w-4 h-4 text-blue-600 mt-1"
                   />
                   <span className="text-xl">{model.icon}</span>
-                  <span className="text-sm font-medium flex-1">{model.name}</span>
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">{model.name}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">{model.description}</div>
+                  </div>
                 </label>
               ))}
             </div>

@@ -4,6 +4,9 @@ import Papa from 'papaparse';
 import { PCA } from 'ml-pca';
 import { kmeans } from 'ml-kmeans';
 import SupervisedML from './components/SupervisedML';
+import DeepLearningML from './components/DeepLearningML';
+import PhenotypeAnalysis from './components/PhenotypeAnalysis';
+
 import { 
   ScatterChart, 
   Scatter as RechartsScatter, 
@@ -44,12 +47,16 @@ const COLORS = ['#22c55e', '#3b82f6', '#ef4444', '#f59e0b', '#8b5cf6', '#ec4899'
 
 export default function HeveaAnalysisInterface() {
   const [data, setData] = useState<SNPData[]>([]);
+  const [phenotypeData, setPhenotypeData] = useState<any[]>([]);
   const [pcaResult, setPcaResult] = useState<PCAResult | null>(null);
   const [clusterResult, setClusterResult] = useState<ClusterResult | null>(null);
   const [numClusters, setNumClusters] = useState(3);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'upload' | 'pca' | 'clusters' | 'results' | 'ml'>('upload');
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingMessage, setLoadingMessage] = useState('');
+  const [activeTab, setActiveTab] = useState<'upload' | 'pca' | 'clusters' | 'results' | 'ml' | 'deep' | 'phenotype'>('upload');
   const [chartType, setChartType] = useState<'scatter' | 'bar' | 'pie' | 'line'>('scatter');
+  const [maxSampleSize, setMaxSampleSize] = useState<number>(0); // 0 = sem limite, processar tudo
 
   const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     console.log('handleFileUpload chamado', event);
@@ -61,37 +68,160 @@ export default function HeveaAnalysisInterface() {
     }
 
     setLoading(true);
+    setLoadingProgress(0);
+    setLoadingMessage('Carregando arquivo...');
+    
+    const parsedData: SNPData[] = [];
+    let rowCount = 0;
+
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
-      complete: (results) => {
-        console.log('Parse completo:', results);
-        const parsedData = results.data as SNPData[];
+      worker: true, // Use Web Worker para não travar a UI
+      step: (result, parser) => {
+        rowCount++;
+        parsedData.push(result.data as SNPData);
+        
+        // Atualizar progresso a cada 50 linhas para feedback mais frequente
+        if (rowCount % 50 === 0) {
+          const progress = Math.min(90, (rowCount / 500) * 100); // Ajustado para arquivos grandes
+          setLoadingProgress(progress);
+          setLoadingMessage(`Processando: ${rowCount} linhas carregadas...`);
+        }
+        
+        // Somente limitar se maxSampleSize > 0
+        if (maxSampleSize > 0 && rowCount >= maxSampleSize) {
+          parser.abort();
+          console.log(`Amostragem limitada a ${maxSampleSize} linhas`);
+        }
+      },
+      complete: () => {
+        console.log('Parse completo:', parsedData.length, 'linhas processadas');
+        setLoadingProgress(100);
+        setLoadingMessage('Concluído!');
         setData(parsedData);
-        setLoading(false);
-        setActiveTab('pca');
+        setTimeout(() => {
+          setLoading(false);
+          setLoadingProgress(0);
+          setActiveTab('pca');
+        }, 500);
       },
       error: (error) => {
         console.error('Erro ao processar arquivo:', error);
         setLoading(false);
+        setLoadingProgress(0);
+        alert(`Erro ao processar arquivo: ${error.message}`);
+      }
+    });
+  }, [maxSampleSize]);
+
+  const handlePhenotypeUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setLoading(true);
+    setLoadingProgress(0);
+    setLoadingMessage('Carregando dados fenotípicos...');
+
+    const parsedData: any[] = [];
+
+    Papa.parse(file, {
+      header: true,
+      worker: true,
+      skipEmptyLines: true,
+      step: (results, parser) => {
+        parsedData.push(results.data);
+        const progress = Math.min(90, Math.floor((parsedData.length / 500) * 90));
+        setLoadingProgress(progress);
+        setLoadingMessage(`Processando dados fenotípicos: ${parsedData.length} linhas...`);
+      },
+      complete: () => {
+        console.log('Dados fenotípicos carregados:', parsedData.length, 'linhas');
+        setLoadingProgress(100);
+        setLoadingMessage('Dados fenotípicos carregados!');
+        setPhenotypeData(parsedData);
+        setTimeout(() => {
+          setLoading(false);
+          setLoadingProgress(0);
+          setActiveTab('phenotype');
+        }, 500);
+      },
+      error: (error) => {
+        console.error('Erro ao processar arquivo fenotípico:', error);
+        setLoading(false);
+        setLoadingProgress(0);
+        alert(`Erro ao processar arquivo: ${error.message}`);
       }
     });
   }, []);
 
-  const performPCA = useCallback(() => {
+  const performPCA = useCallback(async () => {
     if (data.length === 0) return;
 
     setLoading(true);
+    setLoadingProgress(0);
+    setLoadingMessage('Preparando dados para PCA...');
     
     try {
+      // Dar tempo para UI atualizar
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      setLoadingProgress(10);
+      setLoadingMessage('Extraindo colunas numéricas...');
+      
       // Prepare numeric data matrix (excluding ID column)
       const numericColumns = Object.keys(data[0]).filter(key => key !== 'id' && !isNaN(Number(data[0][key])));
-      const matrix = data.map(row => 
-        numericColumns.map(col => Number(row[col]) || 0)
-      );
+      
+      console.log(`PCA: ${data.length} amostras x ${numericColumns.length} colunas`);
+      
+      // Para arquivos muito grandes, usar apenas primeiras N colunas SNP
+      const MAX_SNPS = 5000; // Limite para evitar travar navegador
+      const columnsToUse = numericColumns.length > MAX_SNPS 
+        ? numericColumns.slice(0, MAX_SNPS) 
+        : numericColumns;
+      
+      if (numericColumns.length > MAX_SNPS) {
+        console.log(`Usando ${MAX_SNPS} de ${numericColumns.length} SNPs para PCA (otimização)`);
+      }
+      
+      setLoadingProgress(20);
+      setLoadingMessage(`Construindo matriz ${data.length}x${columnsToUse.length}...`);
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Construir matriz em chunks para não travar
+      const matrix: number[][] = [];
+      const chunkSize = 50;
+      
+      for (let i = 0; i < data.length; i += chunkSize) {
+        const chunk = data.slice(i, Math.min(i + chunkSize, data.length));
+        const matrixChunk = chunk.map(row => 
+          columnsToUse.map(col => Number(row[col]) || 0)
+        );
+        matrix.push(...matrixChunk);
+        
+        const progress = 20 + (i / data.length) * 20;
+        setLoadingProgress(progress);
+        setLoadingMessage(`Processando linhas ${i + 1}-${Math.min(i + chunkSize, data.length)}...`);
+        
+        // Dar tempo para UI atualizar
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
 
+      setLoadingProgress(50);
+      setLoadingMessage('Executando análise PCA (pode levar alguns segundos)...');
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const pca = new PCA(matrix);
+      
+      setLoadingProgress(70);
+      setLoadingMessage('Projetando dados...');
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
       const projectedData = pca.predict(matrix);
+      
+      setLoadingProgress(85);
+      setLoadingMessage('Finalizando cálculos...');
+      await new Promise(resolve => setTimeout(resolve, 50));
       
       const result: PCAResult = {
         eigenvalues: Array.from(pca.getEigenvalues()),
@@ -100,37 +230,70 @@ export default function HeveaAnalysisInterface() {
         explainedVariance: Array.from(pca.getExplainedVariance())
       };
 
+      setLoadingProgress(100);
+      setLoadingMessage('PCA concluída!');
       setPcaResult(result);
+      
+      console.log('PCA concluída:', result.explainedVariance.slice(0, 3));
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setLoading(false);
+      setLoadingProgress(0);
       setActiveTab('clusters');
     } catch (error) {
       console.error('Erro na análise PCA:', error);
-    } finally {
+      alert(`Erro na análise PCA: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
       setLoading(false);
+      setLoadingProgress(0);
     }
   }, [data]);
 
-  const performClustering = useCallback(() => {
+  const performClustering = useCallback(async () => {
     if (!pcaResult) return;
 
     setLoading(true);
+    setLoadingProgress(0);
+    setLoadingMessage('Preparando dados para clustering...');
     
     try {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      setLoadingProgress(30);
+      setLoadingMessage('Extraindo componentes PCA...');
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
       // Use first 2 PCA components for clustering
       const pcaData = pcaResult.projectedData.map(row => [row[0], row[1]]);
+      
+      setLoadingProgress(50);
+      setLoadingMessage(`Executando K-means (k=${numClusters})...`);
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
       const result = kmeans(pcaData, numClusters, { initialization: 'random' });
 
+      setLoadingProgress(80);
+      setLoadingMessage('Finalizando clusters...');
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
       const clusterData: ClusterResult = {
         clusters: result.clusters,
         centroids: result.centroids,
         assignments: result.clusters
       };
 
+      setLoadingProgress(100);
+      setLoadingMessage('Clustering concluído!');
       setClusterResult(clusterData);
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setLoading(false);
+      setLoadingProgress(0);
       setActiveTab('results');
     } catch (error) {
       console.error('Erro no clustering K-means:', error);
-    } finally {
+      alert(`Erro no clustering: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
       setLoading(false);
+      setLoadingProgress(0);
     }
   }, [pcaResult, numClusters]);
 
@@ -214,13 +377,31 @@ export default function HeveaAnalysisInterface() {
           </p>
         </header>
 
+        {/* Loading Progress Bar */}
+        {loading && (
+          <div className="mb-6 bg-white rounded-lg shadow-sm p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">{loadingMessage}</span>
+              <span className="text-sm font-medium text-gray-700">{Math.round(loadingProgress)}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div 
+                className="bg-rubber-green-600 h-2.5 rounded-full transition-all duration-300 ease-out"
+                style={{ width: `${loadingProgress}%` }}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Navigation Tabs */}
         <div className="flex gap-1 mb-8 bg-white rounded-lg p-1 shadow-sm">
           {[
             { id: 'upload', label: 'Upload de Dados', icon: Upload },
             { id: 'pca', label: 'Análise PCA', icon: TrendingUp },
             { id: 'clusters', label: 'Clustering', icon: BarChart3 },
+            { id: 'phenotype', label: 'Dados Fenotípicos', icon: BarChart3 },
             { id: 'ml', label: 'ML Supervisionado', icon: Brain },
+            { id: 'deep', label: 'Deep Learning', icon: Brain },
             { id: 'results', label: 'Resultados', icon: Download }
           ].map(tab => {
             const Icon = tab.icon;
@@ -247,15 +428,46 @@ export default function HeveaAnalysisInterface() {
             <div className="text-center py-12">
               <Upload className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">Upload dos Dados SNP</h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 mb-4">
                 Faça upload de um arquivo CSV contendo os dados de SNPs da seringueira
               </p>
+              
+              {/* Sample Size Control */}
+              <div className="max-w-md mx-auto mb-6 p-4 bg-blue-50 rounded-lg">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Limite de Amostragem (opcional)
+                </label>
+                <p className="text-xs text-gray-500 mb-3">
+                  Para datasets grandes, limite o número de linhas para análise mais rápida. Deixe vazio para processar tudo.
+                </p>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    min="100"
+                    max="10000"
+                    placeholder="Ex: 1000 (0 ou vazio = sem limite)"
+                    value={maxSampleSize || ''}
+                    onChange={(e) => setMaxSampleSize(e.target.value ? parseInt(e.target.value) : 0)}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                  {maxSampleSize > 0 && (
+                    <button
+                      onClick={() => setMaxSampleSize(0)}
+                      className="px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                    >
+                      Limpar
+                    </button>
+                  )}
+                </div>
+              </div>
+              
               <input
                 type="file"
                 accept=".csv"
                 onChange={handleFileUpload}
                 style={{ display: 'none' }}
                 id="file-upload"
+                disabled={loading}
               />
               <label
                 htmlFor="file-upload"
@@ -264,25 +476,83 @@ export default function HeveaAnalysisInterface() {
                   alignItems: 'center',
                   gap: '0.5rem',
                   padding: '0.75rem 1.5rem',
-                  backgroundColor: '#16a34a',
+                  backgroundColor: loading ? '#9ca3af' : '#16a34a',
                   color: 'white',
                   borderRadius: '0.5rem',
-                  cursor: 'pointer',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.5 : 1,
                   transition: 'background-color 0.2s'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#15803d'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#16a34a'}
+                onMouseEnter={(e) => {
+                  if (!loading) e.currentTarget.style.backgroundColor = '#15803d';
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading) e.currentTarget.style.backgroundColor = '#16a34a';
+                }}
               >
                 <Upload className="h-4 w-4" />
-                Selecionar Arquivo CSV
+                {loading ? 'Processando...' : 'Selecionar Arquivo CSV'}
               </label>
               {data.length > 0 && (
                 <div className="mt-6 p-4 bg-green-50 rounded-lg">
-                  <p className="text-green-800">
+                  <p className="text-green-800 font-medium">
                     ✅ {data.length} amostras carregadas com sucesso!
                   </p>
+                  {maxSampleSize && data.length >= maxSampleSize && (
+                    <p className="text-sm text-green-700 mt-2">
+                      ℹ️ Amostragem limitada a {maxSampleSize} linhas
+                    </p>
+                  )}
                 </div>
               )}
+
+              {/* Phenotype Upload Section */}
+              <div className="mt-8 pt-8 border-t border-gray-200">
+                <h3 className="text-lg font-semibold mb-2">Upload dos Dados Fenotípicos (Opcional)</h3>
+                <p className="text-gray-600 mb-4">
+                  Faça upload de um arquivo CSV contendo dados fenotípicos (DAP, AP, etc.) para análise de correlações e predição de características
+                </p>
+                
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={handlePhenotypeUpload}
+                  style={{ display: 'none' }}
+                  id="phenotype-upload"
+                  disabled={loading}
+                />
+                <label
+                  htmlFor="phenotype-upload"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.75rem 1.5rem',
+                    backgroundColor: loading ? '#9ca3af' : '#3b82f6',
+                    color: 'white',
+                    borderRadius: '0.5rem',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    opacity: loading ? 0.5 : 1,
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!loading) e.currentTarget.style.backgroundColor = '#2563eb';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!loading) e.currentTarget.style.backgroundColor = '#3b82f6';
+                  }}
+                >
+                  <Upload className="h-4 w-4" />
+                  {loading ? 'Processando...' : 'Selecionar Arquivo de Fenótipo'}
+                </label>
+                {phenotypeData.length > 0 && (
+                  <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                    <p className="text-blue-800 font-medium">
+                      ✅ {phenotypeData.length} registros fenotípicos carregados!
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -445,6 +715,31 @@ export default function HeveaAnalysisInterface() {
           {activeTab === 'ml' && (
             <div className="space-y-6">
               <SupervisedML data={data} pcaResult={pcaResult} />
+            </div>
+          )}
+
+          {activeTab === 'deep' && (
+            <div className="space-y-6">
+              <DeepLearningML data={data} pcaResult={pcaResult} />
+            </div>
+          )}
+
+          {activeTab === 'phenotype' && (
+            <div className="space-y-6">
+              <h3 className="text-lg font-semibold mb-4">Análise de Dados Fenotípicos</h3>
+              {phenotypeData.length > 0 ? (
+                <PhenotypeAnalysis 
+                  phenotypeData={phenotypeData} 
+                  markerData={data}
+                />
+              ) : (
+                <div className="text-center p-8 bg-gray-50 rounded-lg">
+                  <BarChart3 className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                  <p className="text-gray-600">
+                    Nenhum dado fenotípico carregado. Faça upload na aba "Upload de Dados".
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
