@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Brain, TrendingUp, AlertCircle, Zap } from 'lucide-react';
+import { Brain, TrendingUp, AlertCircle } from 'lucide-react';
 import { trainModels } from '../utils/mlAlgorithms';
 import type { MLResult } from '../utils/mlAlgorithms';
 
@@ -17,7 +17,6 @@ export default function SupervisedML({ data, pcaResult }: SupervisedMLProps) {
   const [testSize, setTestSize] = useState(0.3);
   const [crossValidation, setCrossValidation] = useState(5);
   const [trainingProgress, setTrainingProgress] = useState('');
-  const [useJavaScript, setUseJavaScript] = useState(true); // Toggle JS/Python
 
   const models = [
     { id: 'svm', name: 'SVM (Support Vector Machine)', icon: '🎯', description: 'Classificação por hiperplano ótimo' },
@@ -48,37 +47,36 @@ export default function SupervisedML({ data, pcaResult }: SupervisedMLProps) {
     setTrainingProgress('Preparando dados...');
 
     try {
-      if (useJavaScript) {
-        // Modo JavaScript - executa no navegador
-        console.log('⚡ Modo JavaScript ativado');
-        console.log('pcaResult estrutura:', Object.keys(pcaResult));
+      // Modo JavaScript - executa no navegador
+      console.log('⚡ Modo JavaScript ativado');
+      console.log('pcaResult estrutura:', Object.keys(pcaResult));
+      
+      // Usa projectedData que é o nome correto no PCA result
+      const pcaScores = pcaResult.projectedData || pcaResult.scores || [];
+      const features = pcaScores.map((row: number[]) => row.slice(0, 3)); // Usa PC1, PC2, PC3
+      console.log('Features:', features.length, 'amostras');
+      
+      // Extrai labels dos clones de forma mais robusta
+      const labels = data.map((d: any) => {
+        const cloneName = String(d.Clone || d.Clones || d.Sample || '').toUpperCase();
         
-        // Usa projectedData que é o nome correto no PCA result
-        const pcaScores = pcaResult.projectedData || pcaResult.scores || [];
-        const features = pcaScores.map((row: number[]) => row.slice(0, 3)); // Usa PC1, PC2, PC3
-        console.log('Features:', features.length, 'amostras');
+        // Grupos de clones de seringueira
+        if (cloneName.includes('RRIM')) return 0;
+        if (cloneName.includes('GT') || cloneName.includes('GT1')) return 1;
+        if (cloneName.includes('PB') || cloneName.includes('PB235')) return 2;
+        if (cloneName.includes('IAN')) return 3;
+        if (cloneName.includes('PR') || cloneName.includes('PR107')) return 4;
+        if (cloneName.includes('AVROS')) return 5;
         
-        // Extrai labels dos clones de forma mais robusta
-        const labels = data.map((d: any) => {
-          const cloneName = String(d.Clone || d.Clones || d.Sample || '').toUpperCase();
-          
-          // Grupos de clones de seringueira
-          if (cloneName.includes('RRIM')) return 0;
-          if (cloneName.includes('GT') || cloneName.includes('GT1')) return 1;
-          if (cloneName.includes('PB') || cloneName.includes('PB235')) return 2;
-          if (cloneName.includes('IAN')) return 3;
-          if (cloneName.includes('PR') || cloneName.includes('PR107')) return 4;
-          if (cloneName.includes('AVROS')) return 5;
-          
-          // Default: usar hash simples do nome se não identificar
-          return Math.abs(cloneName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % 6;
-        });
+        // Default: usar hash simples do nome se não identificar
+        return Math.abs(cloneName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % 6;
+      });
 
-        console.log('Labels:', labels);
-        console.log('Classes únicas:', [...new Set(labels)].sort());
-        console.log('Distribuição:', labels.reduce((acc: any, l) => {
-          acc[l] = (acc[l] || 0) + 1;
-          return acc;
+      console.log('Labels:', labels);
+      console.log('Classes únicas:', [...new Set(labels)].sort());
+      console.log('Distribuição:', labels.reduce((acc: any, l) => {
+        acc[l] = (acc[l] || 0) + 1;
+        return acc;
         }, {}));
         
         // Verificar se há pelo menos 2 classes
@@ -105,36 +103,12 @@ export default function SupervisedML({ data, pcaResult }: SupervisedMLProps) {
 
         console.log('✅ Resultados:', mlResults);
         setResults(mlResults);
-      } else {
-        // Modo Python - chama API backend
-        setTrainingProgress('Conectando ao servidor Python...');
-        
-        const response = await fetch('http://localhost:5000/api/train', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            features: pcaResult.projectedData || pcaResult.scores || [],
-            labels: data.map((_d: any, idx: number) => idx % 6), // Simplificado
-            models: selectedModels,
-            testSize,
-            crossValidation
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error('Servidor Python não está respondendo. Execute o backend primeiro!');
-        }
-
-        const mlResults = await response.json();
-        setResults(mlResults);
-      }
-
-      setTrainingProgress('Concluído!');
-    } catch (error) {
-      console.error('❌ Erro ao treinar modelos:', error);
-      alert(`Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
-    } finally {
-      setIsTraining(false);
+        setTrainingProgress('Concluído!');
+      } catch (error) {
+        console.error('❌ Erro ao treinar modelos:', error);
+        alert(`Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+      } finally {
+        setIsTraining(false);
       setTimeout(() => setTrainingProgress(''), 2000);
     }
   };
@@ -149,12 +123,37 @@ export default function SupervisedML({ data, pcaResult }: SupervisedMLProps) {
 
   return (
     <div className="space-y-6">
+      {/* Aviso Principal - Usar Resultados Python */}
+      <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border-l-4 border-yellow-500 p-6 rounded-lg shadow-md">
+        <div className="flex items-start gap-4">
+          <AlertCircle className="w-8 h-8 text-yellow-600 flex-shrink-0 mt-1" />
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-yellow-900 mb-2">
+              ⚠️ Atenção: Aba de Prototipagem Rápida
+            </h3>
+            <p className="text-yellow-800 mb-3">
+              Esta aba utiliza <strong>implementações JavaScript simplificadas</strong> para demonstração e prototipagem rápida no navegador. 
+              Os resultados podem apresentar overfitting ou imprecisões.
+            </p>
+            <div className="bg-green-100 border border-green-300 rounded-lg p-4 mt-3">
+              <p className="text-green-900 font-semibold mb-2">
+                ✅ Para resultados <strong>científicos validados</strong>:
+              </p>
+              <p className="text-green-800 text-sm mb-3">
+                Use a aba <strong>"🐍 ML Python (Real)"</strong> que exibe resultados de <strong>Grid Search com Cross-Validation (5-fold)</strong> 
+                processados com <strong>scikit-learn</strong> (biblioteca padrão científico).
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Header */}
       <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6 border border-purple-200">
         <div className="flex items-center gap-3 mb-2">
           <Brain className="w-7 h-7 text-purple-600" />
           <h2 className="text-2xl font-bold text-gray-800">
-            Machine Learning Supervisionado
+            Machine Learning Supervisionado (Protótipo JavaScript)
           </h2>
         </div>
         <p className="text-gray-600">
@@ -202,29 +201,6 @@ export default function SupervisedML({ data, pcaResult }: SupervisedMLProps) {
             <h3 className="text-lg font-semibold mb-4">Parâmetros</h3>
             
             <div className="space-y-4">
-              {/* Toggle JS/Python */}
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border border-blue-200">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={useJavaScript}
-                    onChange={(e) => setUseJavaScript(e.target.checked)}
-                    className="w-5 h-5 text-blue-600"
-                  />
-                  <div className="flex-1">
-                    <div className="font-semibold text-sm flex items-center gap-2">
-                      <Zap className="w-4 h-4" />
-                      {useJavaScript ? '⚡ JavaScript (Browser)' : '🐍 Python (Backend)'}
-                    </div>
-                    <div className="text-xs text-gray-600 mt-1">
-                      {useJavaScript 
-                        ? 'Executa no navegador - Rápido e sem dependências' 
-                        : 'Usa scikit-learn - Requer servidor Python rodando'}
-                    </div>
-                  </div>
-                </label>
-              </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Tamanho do Conjunto de Teste: {(testSize * 100).toFixed(0)}%

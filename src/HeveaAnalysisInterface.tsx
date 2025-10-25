@@ -3,9 +3,8 @@ import { Upload, BarChart3, TrendingUp, Download, Info, Brain } from 'lucide-rea
 import Papa from 'papaparse';
 import { PCA } from 'ml-pca';
 import { kmeans } from 'ml-kmeans';
-import SupervisedML from './components/SupervisedML';
-import DeepLearningML from './components/DeepLearningML';
 import PhenotypeAnalysis from './components/PhenotypeAnalysis';
+import PythonMLResults from './components/PythonMLResults';
 
 import { 
   ScatterChart, 
@@ -54,7 +53,7 @@ export default function HeveaAnalysisInterface() {
   const [loading, setLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingMessage, setLoadingMessage] = useState('');
-  const [activeTab, setActiveTab] = useState<'upload' | 'pca' | 'clusters' | 'results' | 'ml' | 'deep' | 'phenotype'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'pca' | 'clusters' | 'results' | 'pythonml' | 'phenotype'>('upload');
   const [chartType, setChartType] = useState<'scatter' | 'bar' | 'pie' | 'line'>('scatter');
   const [maxSampleSize, setMaxSampleSize] = useState<number>(0); // 0 = sem limite, processar tudo
 
@@ -400,8 +399,7 @@ export default function HeveaAnalysisInterface() {
             { id: 'pca', label: 'Análise PCA', icon: TrendingUp },
             { id: 'clusters', label: 'Clustering', icon: BarChart3 },
             { id: 'phenotype', label: 'Dados Fenotípicos', icon: BarChart3 },
-            { id: 'ml', label: 'ML Supervisionado', icon: Brain },
-            { id: 'deep', label: 'Deep Learning', icon: Brain },
+            { id: 'pythonml', label: '🐍 ML Python (Real)', icon: Brain },
             { id: 'results', label: 'Resultados', icon: Download }
           ].map(tab => {
             const Icon = tab.icon;
@@ -503,6 +501,23 @@ export default function HeveaAnalysisInterface() {
                       ℹ️ Amostragem limitada a {maxSampleSize} linhas
                     </p>
                   )}
+                  
+                  {/* Banner de Direcionamento para Resultados Reais */}
+                  <div className="mt-4 p-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg text-white">
+                    <p className="font-bold text-lg mb-2">🎯 Dados Carregados! Próximo Passo:</p>
+                    <p className="text-sm mb-3">
+                      Para ver os <strong>resultados científicos validados</strong> destes dados (Grid Search + Cross-Validation com scikit-learn):
+                    </p>
+                    <button
+                      onClick={() => setActiveTab('pythonml')}
+                      className="px-4 py-2 bg-white text-blue-600 rounded-lg font-bold hover:bg-gray-100 transition-colors shadow-md"
+                    >
+                      🐍 Ver Resultados Reais (ML Python)
+                    </button>
+                    <p className="text-xs mt-2 opacity-90">
+                      * Ou navegue normalmente pelas abas PCA, Clustering, etc.
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -712,15 +727,9 @@ export default function HeveaAnalysisInterface() {
             </div>
           )}
 
-          {activeTab === 'ml' && (
+          {activeTab === 'pythonml' && (
             <div className="space-y-6">
-              <SupervisedML data={data} pcaResult={pcaResult} />
-            </div>
-          )}
-
-          {activeTab === 'deep' && (
-            <div className="space-y-6">
-              <DeepLearningML data={data} pcaResult={pcaResult} />
+              <PythonMLResults />
             </div>
           )}
 

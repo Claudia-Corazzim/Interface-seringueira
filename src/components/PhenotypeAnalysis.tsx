@@ -159,6 +159,8 @@ export default function PhenotypeAnalysis({
     
     try {
       console.log('🎯 Iniciando predição de característica:', selectedTrait);
+      console.log('📊 Marcadores:', markerData.length, 'amostras');
+      console.log('📊 Fenótipos:', phenotypeData.length, 'registros');
       
       // Extract features (SNP markers) - get numeric columns only
       const numericColumns = Object.keys(markerData[0]).filter(
@@ -170,35 +172,41 @@ export default function PhenotypeAnalysis({
       // Limit to 5000 SNPs for performance
       const selectedColumns = numericColumns.slice(0, 5000);
       
-      const features: number[][] = markerData.map(sample =>
-        selectedColumns.map(col => Number(sample[col]) || 0)
-      );
+      // Preparar pares de dados válidos (feature + target)
+      const validPairs: { features: number[], target: number }[] = [];
       
-      // Extract target values (phenotype trait)
-      const target: number[] = phenotypeData.map(sample => {
-        const value = sample[selectedTrait];
-        return typeof value === 'string' ? parseFloat(value) : value;
-      }).filter(val => !isNaN(val));
+      // Usar o tamanho mínimo entre marcadores e fenótipos
+      const minLength = Math.min(markerData.length, phenotypeData.length);
       
-      console.log(`🎯 Target (${selectedTrait}): ${target.length} valores`);
-      
-      // Check if sample sizes match
-      if (features.length !== target.length) {
-        console.warn(`⚠️ Tamanhos diferentes: ${features.length} marcadores vs ${target.length} fenótipos`);
+      for (let i = 0; i < minLength; i++) {
+        // Extrair features (SNPs) da amostra i
+        const sampleFeatures = selectedColumns.map(col => Number(markerData[i][col]) || 0);
         
-        // Take minimum length
-        const minLength = Math.min(features.length, target.length);
-        features.splice(minLength);
-        target.splice(minLength);
+        // Extrair target (fenótipo) da amostra i
+        const phenotypeValue = phenotypeData[i][selectedTrait];
+        const targetValue = typeof phenotypeValue === 'string' ? parseFloat(phenotypeValue) : phenotypeValue;
         
-        console.log(`✂️ Ajustado para ${minLength} amostras`);
+        // Só adicionar se o target for válido
+        if (!isNaN(targetValue) && isFinite(targetValue)) {
+          validPairs.push({
+            features: sampleFeatures,
+            target: targetValue
+          });
+        }
       }
       
-      if (target.length < 10) {
-        alert('❌ Dados insuficientes para treinamento (mínimo 10 amostras)');
+      console.log(`✅ Pares válidos: ${validPairs.length} amostras`);
+      console.log(`📊 Target (${selectedTrait}): min=${Math.min(...validPairs.map(p => p.target)).toFixed(2)}, max=${Math.max(...validPairs.map(p => p.target)).toFixed(2)}`);
+      
+      if (validPairs.length < 10) {
+        alert(`❌ Dados insuficientes para treinamento (apenas ${validPairs.length} amostras válidas, mínimo 10).\n\nVerifique se os arquivos de marcadores e fenótipos têm amostras correspondentes.`);
         setIsAnalyzing(false);
         return;
       }
+      
+      // Separar features e targets
+      const features = validPairs.map(p => p.features);
+      const target = validPairs.map(p => p.target);
       
       // Train regression models
       const results = await trainRegressionModels(

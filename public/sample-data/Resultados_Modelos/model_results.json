@@ -1,0 +1,68 @@
+[
+    {
+        "Model": "SVM",
+        "Train Metrics": {
+            "Accuracy": 1.0,
+            "Balanced Accuracy": 1.0,
+            "F1-Score": 1.0,
+            "Precision": 1.0,
+            "Recall": 1.0
+        },
+        "Model Path": "/content/drive/MyDrive/Colab_Notebooks/Univesp/PI_VI/Dados/Resultados_Modelos/SVM_best_model.pkl"
+    },
+    {
+        "Model": "Random Forest",
+        "Train Metrics": {
+            "Accuracy": 1.0,
+            "Balanced Accuracy": 1.0,
+            "F1-Score": 1.0,
+            "Precision": 1.0,
+            "Recall": 1.0
+        },
+        "Model Path": "/content/drive/MyDrive/Colab_Notebooks/Univesp/PI_VI/Dados/Resultados_Modelos/Random Forest_best_model.pkl"
+    },
+    {
+        "Model": "AdaBoost",
+        "Train Metrics": {
+            "Accuracy": 0.7282229965156795,
+            "Balanced Accuracy": 0.7353347135955831,
+            "F1-Score": 0.7289958409014383,
+            "Precision": 0.7417676983787383,
+            "Recall": 0.7282229965156795
+        },
+        "Model Path": "/content/drive/MyDrive/Colab_Notebooks/Univesp/PI_VI/Dados/Resultados_Modelos/AdaBoost_best_model.pkl"
+    },
+    {
+        "Model": "XGBoost",
+        "Train Metrics": {
+            "Accuracy": 1.0,
+            "Balanced Accuracy": 1.0,
+            "F1-Score": 1.0,
+            "Precision": 1.0,
+            "Recall": 1.0
+        },
+        "Model Path": "/content/drive/MyDrive/Colab_Notebooks/Univesp/PI_VI/Dados/Resultados_Modelos/XGBoost_best_model.pkl"
+    },
+    {
+        "Model": "KNN",
+        "Train Metrics": {
+            "Accuracy": 0.7177700348432056,
+            "Balanced Accuracy": 0.7079020013802623,
+            "F1-Score": 0.7155704282953027,
+            "Precision": 0.7163762711780307,
+            "Recall": 0.7177700348432056
+        },
+        "Model Path": "/content/drive/MyDrive/Colab_Notebooks/Univesp/PI_VI/Dados/Resultados_Modelos/KNN_best_model.pkl"
+    },
+    {
+        "Model": "MLP Neural Network",
+        "Train Metrics": {
+            "Accuracy": 1.0,
+            "Balanced Accuracy": 1.0,
+            "F1-Score": 1.0,
+            "Precision": 1.0,
+            "Recall": 1.0
+        },
+        "Model Path": "/content/drive/MyDrive/Colab_Notebooks/Univesp/PI_VI/Dados/Resultados_Modelos/MLP Neural Network_best_model.pkl"
+    }
+]
