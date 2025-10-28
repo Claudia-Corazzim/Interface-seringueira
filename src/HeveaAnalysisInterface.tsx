@@ -168,19 +168,19 @@ export default function HeveaAnalysisInterface() {
       setLoadingProgress(10);
       setLoadingMessage('Extraindo colunas numéricas...');
       
-      // Prepare numeric data matrix (excluding ID column)
-      const numericColumns = Object.keys(data[0]).filter(key => key !== 'id' && !isNaN(Number(data[0][key])));
+      // Prepare numeric data matrix - APENAS colunas SNP (começam com "snp")
+      const snpColumns = Object.keys(data[0]).filter(key => key.toLowerCase().startsWith('snp'));
       
-      console.log(`PCA: ${data.length} amostras x ${numericColumns.length} colunas`);
+      console.log(`PCA: ${data.length} amostras x ${snpColumns.length} SNPs`);
       
       // Para arquivos muito grandes, usar apenas primeiras N colunas SNP
       const MAX_SNPS = 5000; // Limite para evitar travar navegador
-      const columnsToUse = numericColumns.length > MAX_SNPS 
-        ? numericColumns.slice(0, MAX_SNPS) 
-        : numericColumns;
+      const columnsToUse = snpColumns.length > MAX_SNPS 
+        ? snpColumns.slice(0, MAX_SNPS) 
+        : snpColumns;
       
-      if (numericColumns.length > MAX_SNPS) {
-        console.log(`Usando ${MAX_SNPS} de ${numericColumns.length} SNPs para PCA (otimização)`);
+      if (snpColumns.length > MAX_SNPS) {
+        console.log(`Usando ${MAX_SNPS} de ${snpColumns.length} SNPs para PCA (otimização)`);
       }
       
       setLoadingProgress(20);
